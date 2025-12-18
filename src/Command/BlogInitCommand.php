@@ -88,7 +88,7 @@ class BlogInitCommand extends Command
         $adminUser->setFirstname("Admin");
         $adminUser->setLastname("Admin");
         $adminUser->setEmail("admin@admin.com");
-        $adminUser->setPassword(md5("P@ssw0rd07"));
+        $adminUser->setPassword(password_hash("P@ssw0rd07", PASSWORD_BCRYPT, ['cost' => 12]));
         $adminUser->setRoles(["ROLE_ADMIN", "ROLE_USER"]);
         $adminUser->setAdmin(true);
         $this->entityManager->persist($adminUser);
@@ -98,7 +98,7 @@ class BlogInitCommand extends Command
         $normalUser->setFirstname("User");
         $normalUser->setLastname("User");
         $normalUser->setEmail("user@user.com");
-        $normalUser->setPassword(md5("user"));
+        $normalUser->setPassword(password_hash("user", PASSWORD_BCRYPT, ['cost' => 12]));
         $normalUser->setRoles(["ROLE_USER"]);
         $normalUser->setAdmin(false);
         $this->entityManager->persist($normalUser);

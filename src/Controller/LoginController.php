@@ -9,13 +9,27 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class LoginController extends AbstractController
 {
     #[Route('/login', name: 'app_login', methods: ['GET', 'POST'])]
-    public function index(Request $request, UserRepository $repository, Security $security): Response
+    public function index(
+        Request $request, 
+        UserRepository $repository, 
+        Security $security,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
         if ($request->isMethod('POST')) {
+            // Validation du token CSRF
+            $token = $request->request->get('_token');
+            if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_login', $token))) {
+                $this->addFlash('error', 'Invalid security token');
+                return $this->render('login/index.html.twig', []);
+            }
+
             $email = $request->get("email");
             $plainPassword = $request->get("password");
 
@@ -50,10 +64,19 @@ class LoginController extends AbstractController
     }
 
     #[Route('/register', name: 'app_register', methods: ['GET', 'POST'])]
-    public function register(Request $request, UserRepository $userRepository): Response
+    public function register(
+        Request $request, 
+        UserRepository $userRepository,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
         if ($request->isMethod('POST')) {
-
+            // Validation du token CSRF
+            $token = $request->request->get('_token');
+            if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_register', $token))) {
+                $this->addFlash('error', 'Invalid security token');
+                return $this->render('login/register.html.twig', []);
+            }
 
             $email = $request->get('email');
             $username = $request->get('username');
@@ -97,7 +120,7 @@ class LoginController extends AbstractController
             $user->setEmail($email);
             $user->setRoles(['ROLE_USER']);
             $user->setUsername($username);
-            $user->setPassword(md5($password));
+            $user->setPassword(password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
 
             $userRepository->save($user, true);
 

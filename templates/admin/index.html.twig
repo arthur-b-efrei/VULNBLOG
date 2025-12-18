@@ -12,6 +12,7 @@
         <div class="admin-add-user">
             <h3>Add account</h3>
             <form method="post" action="{{ path('app_admin_create') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('app_admin_create') }}">
                 <label for="username">Username:</label>
                 <input id="username" type="text" name="username" required/>
                 <label for="firstname">First name:</label>
@@ -44,6 +45,7 @@
                         <li>{{ user.email }}</li>
                     </ul>
                     <form action="{{ path('app_admin_role', { 'user': user.id }) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token('app_admin_role') }}">
                         <label>
                             <select name="role">
                                 <option {{ 'ROLE_ADMIN' not in user.roles ? 'selected' : '' }} value="0">

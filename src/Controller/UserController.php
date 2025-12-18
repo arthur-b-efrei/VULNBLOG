@@ -11,6 +11,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class UserController extends AbstractController
 {
@@ -25,8 +27,20 @@ class UserController extends AbstractController
     }
 
     #[Route('/user/password/{user}', name: 'app_user_password', methods: ['POST'])]
-    public function changePassword(User $user, Request $request, UserRepository $userRepository): Response
+    public function changePassword(
+        User $user, 
+        Request $request, 
+        UserRepository $userRepository,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_user_password', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_user');
+        }
+
         $password = $request->get('newPassword');
         $confirmPassword = $request->get('confirmPassword');
 
@@ -35,7 +49,7 @@ class UserController extends AbstractController
             return $this->redirectToRoute('app_user');
         }
 
-        $user->setPassword(md5($password));
+        $user->setPassword(password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
 
         $userRepository->save($user, true);
 
@@ -44,8 +58,20 @@ class UserController extends AbstractController
     }
 
     #[Route('/user/email/{user}', name: 'app_user_email', methods: ['POST'])]
-    public function changeEmail(User $user, Request $request, UserRepository $userRepository): Response
+    public function changeEmail(
+        User $user, 
+        Request $request, 
+        UserRepository $userRepository,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_user_email', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_user');
+        }
+
         $email = $request->get('newEmail');
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -61,8 +87,20 @@ class UserController extends AbstractController
     }
 
     #[Route('/user/avatar/{user}', name: 'app_user_avatar', methods: ['POST'])]
-    public function uploadAvatar(Request $request, UserRepository $userRepository, User $user): Response
+    public function uploadAvatar(
+        Request $request, 
+        UserRepository $userRepository, 
+        User $user,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_user_avatar', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_user');
+        }
+
         if ($user !== $this->getUser()) {
             $this->addFlash('error', 'You cannot change other users avatar');
             return $this->redirectToRoute('app_user');
@@ -101,8 +139,16 @@ class UserController extends AbstractController
         Request $request,
         UserRepository $userRepository,
         User $user,
-        Avatar $avatarService
+        Avatar $avatarService,
+        CsrfTokenManagerInterface $csrfTokenManager
     ): Response {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_user_url_avatar', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_user');
+        }
+
         if ($user !== $this->getUser()) {
             $this->addFlash('error', 'You cannot change other users avatar');
             return $this->redirectToRoute('app_user');
@@ -178,9 +224,17 @@ class UserController extends AbstractController
     public function about(
         Request $request,
         EntityManagerInterface $entityManager,
-        #[CurrentUser] ?User $user
+        #[CurrentUser] ?User $user,
+        CsrfTokenManagerInterface $csrfTokenManager
     ): Response
     {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_user_about', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_user');
+        }
+
         $about = $request->get('about');
         $user->setAboutMe($about);
         $entityManager->flush();
@@ -201,9 +255,17 @@ class UserController extends AbstractController
     public function edit(
         Request $request,
         EntityManagerInterface $entityManager,
-        #[CurrentUser] ?User $user
+        #[CurrentUser] ?User $user,
+        CsrfTokenManagerInterface $csrfTokenManager
     ): Response
     {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_user_edit', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_user_edit_form');
+        }
+
         $user->fromArray($request->request->all());
 
         $entityManager->flush();

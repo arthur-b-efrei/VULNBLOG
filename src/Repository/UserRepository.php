@@ -65,12 +65,51 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->save($user, true);
     }
 
-    public function getUserLogin(string $email, string $password): false|array
+    /**
+     * @return array|false
+     */
+    public function getUserLogin(string $email, string $password)
     {
-        $hashedPassword = md5($password);
-        $rawSql = "SELECT * FROM user WHERE email = '$email' AND password = '$hashedPassword' LIMIT 1";
-        $conn = $this->getEntityManager()->getConnection();
-        $stmt = $conn->prepare($rawSql);
-        return $stmt->executeQuery([])->fetchAssociative();
+        // Trouver l'utilisateur par email uniquement (sécurisé avec Doctrine)
+        $user = $this->findOneBy(['email' => $email]);
+        
+        if (!$user instanceof User) {
+            return false;
+        }
+        
+        $storedPassword = $user->getPassword();
+        
+        // Vérifier le mot de passe : supporte MD5 (ancien format) et bcrypt (nouveau format)
+        $passwordValid = false;
+        
+        // Si le hash est en MD5 (32 caractères hexadécimaux), vérifier avec MD5 pour compatibilité
+        if (strlen($storedPassword) === 32 && ctype_xdigit($storedPassword)) {
+            $passwordValid = ($storedPassword === md5($password));
+        } else {
+            // Sinon, utiliser password_verify pour bcrypt
+            $passwordValid = password_verify($password, $storedPassword);
+        }
+        
+        if (!$passwordValid) {
+            return false;
+        }
+        
+        // Si le mot de passe est en MD5, le rehasher en bcrypt pour la prochaine fois
+        if (strlen($storedPassword) === 32 && ctype_xdigit($storedPassword)) {
+            $user->setPassword(password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
+            $this->save($user, true);
+        }
+        
+        return [
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'password' => $user->getPassword(),
+            'username' => $user->getUsername(),
+            'firstname' => $user->getFirstname(),
+            'lastname' => $user->getLastname(),
+            'aboutMe' => $user->getAboutMe(),
+            'avatar' => $user->getAvatar(),
+            'isAdmin' => $user->isAdmin(),
+        ];
     }
 }

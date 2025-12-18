@@ -24,6 +24,7 @@
         <div>
             <h3>Change about me</h3>
             <form method="post" action="{{ path('app_user_about') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('app_user_about') }}">
                 <label for="about">About me</label>
                 <textarea id="about" name="about">{{ user.aboutMe }}</textarea>
                 <button type="submit">Save</button>
@@ -33,6 +34,7 @@
         <div>
             <h3>Change password</h3>
             <form method="post" action="{{ path('app_user_password', { 'user': user.id }) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('app_user_password') }}">
                 <label for="newPassword">New password</label>
                 <input type="password" id="newPassword" name="newPassword" required/>
                 <label for="confirmPassword">Confirm password</label>
@@ -51,6 +53,7 @@
         <div>
             <h3>Change email</h3>
             <form method="post" action="{{ path('app_user_email', { 'user': user.id }) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('app_user_email') }}">
                 <label for="newEmail">New email</label>
                 <input type="email" id="newEmail" name="newEmail" required/>
                 <button type="submit">Change email</button>
@@ -69,6 +72,7 @@
             <h4>Upload a new image file:</h4>
             <form method="post" action="{{ path('app_user_avatar', { 'user': user.id }) }}"
                   enctype="multipart/form-data">
+                <input type="hidden" name="_token" value="{{ csrf_token('app_user_avatar') }}">
                 <input type="file" id="avatar" name="avatar" required/>
                 <button type="submit">Change avatar</button>
             </form>
@@ -76,6 +80,7 @@
             <h4>Get the image file from a URL:</h4>
             <form method="post" action="{{ path('app_user_url_avatar', { 'user': user.id }) }}"
                   enctype="multipart/form-data">
+                <input type="hidden" name="_token" value="{{ csrf_token('app_user_url_avatar') }}">
                 <input type="text" id="url" name="url" required placeholder="https://example.com/image.png"/>
                 <button type="submit">Get avatar</button>
             </form>

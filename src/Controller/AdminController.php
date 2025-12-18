@@ -11,6 +11,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class AdminController extends AbstractController
 {
@@ -23,8 +25,20 @@ class AdminController extends AbstractController
     }
 
     #[Route('/user/role/{user}', name: 'app_admin_role', methods: ['POST'])]
-    public function changeRole(Request $request, UserRepository $userRepository, User $user): Response
+    public function changeRole(
+        Request $request, 
+        UserRepository $userRepository, 
+        User $user,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_admin_role', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_admin');
+        }
+
         $user = $userRepository->find($user);
         $user->setAdmin($request->get('role') === '1');
         $userRepository->save($user, true);
@@ -57,8 +71,19 @@ class AdminController extends AbstractController
 
     // Create a new user account
     #[Route('/admin/create', name: 'app_admin_create')]
-    public function createUser(UserRepository $userRepository, Request $request): Response
+    public function createUser(
+        UserRepository $userRepository, 
+        Request $request,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_admin_create', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_admin');
+        }
+
         $email = $request->get('email');
         $username = $request->get('username');
         $password = $request->get('password');
@@ -99,7 +124,7 @@ class AdminController extends AbstractController
         $user->setUsername($username);
         $user->setFirstname($firstname);
         $user->setLastname($lastname);
-        $user->setPassword(md5($password));
+        $user->setPassword(password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
 
         $userRepository->save($user, true);
         $this->addFlash('success', 'User created successfully');

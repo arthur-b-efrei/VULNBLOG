@@ -9,6 +9,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class PasswordResetController extends AbstractController
 {
@@ -17,11 +19,19 @@ class PasswordResetController extends AbstractController
         Request $request,
         UserRepository $userRepository,
         EntityManagerInterface $entityManager,
-        Mail $mail
+        Mail $mail,
+        CsrfTokenManagerInterface $csrfTokenManager
     ): Response
     {
 
         if ($request->getMethod() === 'POST') {
+            // Validation du token CSRF
+            $token = $request->request->get('_token');
+            if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_reset', $token))) {
+                $this->addFlash('error', 'Invalid security token');
+                return $this->render('login/reset.html.twig', []);
+            }
+
             $email = $request->get('email');
             if (empty($email)) {
                 $this->addFlash('error', 'Email is required');
@@ -51,10 +61,21 @@ class PasswordResetController extends AbstractController
         string $token,
         UserRepository $userRepository,
         EntityManagerInterface $entityManager,
+        CsrfTokenManagerInterface $csrfTokenManager
     ): Response
     {
 
         if ($request->getMethod() === 'POST') {
+            // Validation du token CSRF
+            $csrfToken = $request->request->get('_token');
+            if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_reset_password', $csrfToken))) {
+                $this->addFlash('error', 'Invalid security token');
+                return $this->render('login/reset_password.html.twig', [
+                    'email' => $email,
+                    'token' => $token,
+                ]);
+            }
+
             $user = $userRepository->findOneBy(['email' => $email]);
             if (!$user || $user->getReset() !== $token) {
                 $this->addFlash('error', 'Invalid reset link');
@@ -69,7 +90,7 @@ class PasswordResetController extends AbstractController
                 return $this->redirectToRoute('app_reset_password', ['email' => $email, 'token' => $token]);
             }
 
-            $user->setPassword(md5($password));
+            $user->setPassword(password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
             $user->setReset(null);
             $entityManager->flush();
 

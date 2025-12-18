@@ -3,7 +3,10 @@ security:
     password_hashers:
         app_hasher:
             id: 'App\Security\Hasher\Md5Hasher'
-        #Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'md5'
+        # Utilisation de bcrypt par défaut pour les nouveaux utilisateurs
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+            algorithm: bcrypt
+            cost: 12
     # https://symfony.com/doc/current/security.html#where-do-users-come-from-user-providers
     providers:
         # used to reload user from session & other features (e.g. switch_user)

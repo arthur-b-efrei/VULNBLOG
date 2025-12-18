@@ -10,6 +10,7 @@
         <div>
             <h3>Edit your personnel information</h3>
             <form method="post" action="{{ path('app_user_edit') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('app_user_edit') }}">
                 <label for="firstname">Firstname</label>
                 <input type="text" id="firstname" name="firstname" required value="{{ user.firstname }}"/>
                 <label for="lastname">Lastname</label>

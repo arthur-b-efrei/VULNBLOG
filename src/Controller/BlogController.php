@@ -11,6 +11,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class BlogController extends AbstractController
 {
@@ -34,11 +36,23 @@ class BlogController extends AbstractController
     }
 
     #[Route('/post/{post}/comment', name: 'app_blog_post_comment', methods: ['POST'])]
-    public function comment(Post $post, Request $request, CommentRepository $commentRepository): Response
+    public function comment(
+        Post $post, 
+        Request $request, 
+        CommentRepository $commentRepository,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response
     {
         // If the user is not logged in, redirect to the login page
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
+        }
+
+        // Validation du token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('app_blog_post_comment', $token))) {
+            $this->addFlash('error', 'Invalid security token');
+            return $this->redirectToRoute('app_blog_post', ['post' => $post->getId()]);
         }
 
         $comment = new Comment();
